@@ -99,6 +99,7 @@ plugins = bundled, http301https, redirect
 EOF
 
 # 首次启动初始化数据库（需传入变量mode=init）
+# 初始化完成后，容器将会自动释放
 docker run \
 --rm \
 --name demo-kong \
@@ -107,9 +108,10 @@ docker run \
 -v /data/config:/data/config \
 --network demo-net \
 --ip 172.18.88.31 \
-registry.cn-beijing.aliyuncs.com/marbleqi/kong:3.0.1 \
+registry.cn-beijing.aliyuncs.com/marbleqi/kong:3.0.1
 
 # 重新生成容器（可按需映射端口到宿主机端口）
+# 注：可按需调整映射端口
 docker run \
 -dit \
 --name demo-kong \
