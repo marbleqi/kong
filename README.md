@@ -4,6 +4,8 @@
 
 注：需要编写自定义的配置文件 kong.conf 并挂载到容器内的/data/config 目录下
 
+<font size="4" face="宋体" color="#ff0000">**如果不挂载该目录，容器将启动失败**</font>
+
 kong.conf 文件内容格式如下
 
 ```conf
@@ -96,18 +98,18 @@ pg_password = kong
 plugins = bundled, http301https, redirect
 EOF
 
-# 首次启动初始化数据库
+# 首次启动初始化数据库（需传入变量mode=init）
 docker run \
--rm \
+--rm \
 --name demo-kong \
 --hostname demo-kong \
+-e mode=init \
 -v /data/config:/data/config \
 --network demo-net \
 --ip 172.18.88.31 \
 registry.cn-beijing.aliyuncs.com/marbleqi/kong:3.0.1 \
-kong migrations bootstrap -c /data/config/kong.conf
 
-# 重新生成容器
+# 重新生成容器（可按需映射端口到宿主机端口）
 docker run \
 -dit \
 --name demo-kong \

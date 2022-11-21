@@ -23,14 +23,12 @@ COPY plugins /usr/local/share/lua/5.1/kong/plugins
 # 引入配置文件数据卷
 VOLUME /data/config
 
-COPY entrypoint.sh .
+COPY run.sh .
 
-ENTRYPOINT ["/entrypoint.sh"]
-
-RUN chmod 755 ./entrypoint.sh
+RUN chmod +x ./run.sh
 
 STOPSIGNAL SIGQUIT
 
 HEALTHCHECK --interval=10s --timeout=10s --retries=10 CMD kong health
 
-CMD ["./entrypoint.sh"]
+CMD ["./run.sh"]
