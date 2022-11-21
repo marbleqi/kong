@@ -1,67 +1,36 @@
-# When you update this file substantially, please update build_your_own_images.md as well.
-FROM registry.access.redhat.com/ubi8/ubi-minimal:8.6@sha256:c7b45019f4db32e536e69e102c4028b66bf5cde173cfff4ffd3281ccf7bb3863
+# 引入基础镜像
+FROM centos:7
 
-LABEL maintainer="Kong Docker Maintainers <docker@konghq.com> (@team-gateway-bot)"
+# 升级软件包版本
+RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && yum install -y epel-release && yum -y update
 
-ARG KONG_VERSION=3.0.1
-ENV KONG_VERSION $KONG_VERSION
+# 安装kong
+RUN yum install -y wget net-tools \
+  && wget https://download.konghq.com/gateway-3.x-centos-7/Packages/k/kong-3.0.1.el7.amd64.rpm \
+  && yum -y install kong-3.0.1.el7.amd64.rpm \
+  && \rm -rf kong-3.0.1.el7.amd64.rpm \
+  && mkdir -p /data/config \
+  && echo "alias ll='ls $LS_OPTIONS -l'" >> /root/.bashrc \
+  && mkdir -p /usr/local/kong/logs \
+  # 将日志输出到控制台
+  && ln -sf /dev/stdout /usr/local/kong/logs/access.log \
+  && ln -sf /dev/stdout /usr/local/kong/logs/admin_access.log \
+  && ln -sf /dev/stderr /usr/local/kong/logs/error.log
 
-# RedHat required labels
-LABEL name="Kong" \
-    vendor="Kong" \
-    version="$KONG_VERSION" \
-    release="1" \
-    url="https://konghq.com" \
-    summary="Next-Generation API Platform for Modern Architectures" \
-    description="Next-Generation API Platform for Modern Architectures"
+# 引入插件
+COPY plugins /usr/local/share/lua/5.1/kong/plugins
 
-ARG KONG_SHA256="ccb185978e994df4c47fa3f5ba10f1820cfa5cfc6b676da98fb920e34b447291"
+# 引入配置文件数据卷
+VOLUME /data/config
 
-ARG ASSET=remote
-ARG EE_PORTS
+COPY entrypoint.sh .
 
-COPY kong.rpm /tmp/kong.rpm
+ENTRYPOINT ["/entrypoint.sh"]
 
-# hadolint ignore=DL3015
-RUN set -ex; \
-    if [ "$ASSET" = "remote" ] ; then \
-    DOWNLOAD_URL="https://download.konghq.com/gateway-${KONG_VERSION%%.*}.x-rhel-8/Packages/k/kong-$KONG_VERSION.rhel8.6.amd64.rpm" \
-    && curl -fL $DOWNLOAD_URL -o /tmp/kong.rpm \
-    && echo "$KONG_SHA256  /tmp/kong.rpm" | sha256sum -c - \
-    || exit 1; \
-    fi \
-    # findutils provides xargs (temporarily)
-    && microdnf install --assumeyes --nodocs \
-    findutils \
-    shadow-utils \
-    unzip \
-    && rpm -qpR /tmp/kong.rpm \
-    | grep -v rpmlib \
-    | xargs -n1 -t microdnf install --assumeyes --nodocs \
-    # Please update the rhel install docs if the below line is changed so that
-    # end users can properly install Kong along with its required dependencies
-    # and that our CI does not diverge from our docs.
-    && rpm -iv /tmp/kong.rpm \
-    && microdnf -y clean all \
-    && rm /tmp/kong.rpm \
-    && chown kong:0 /usr/local/bin/kong \
-    && chown -R kong:0 /usr/local/kong \
-    && ln -s /usr/local/openresty/bin/resty /usr/local/bin/resty \
-    && ln -s /usr/local/openresty/luajit/bin/luajit /usr/local/bin/luajit \
-    && ln -s /usr/local/openresty/luajit/bin/luajit /usr/local/bin/lua \
-    && ln -s /usr/local/openresty/nginx/sbin/nginx /usr/local/bin/nginx \
-    && kong version
-
-COPY docker-entrypoint.sh /docker-entrypoint.sh
-
-USER kong
-
-ENTRYPOINT ["/docker-entrypoint.sh"]
-
-EXPOSE 8000 8443 8001 8444 $EE_PORTS
+RUN chmod 755 ./entrypoint.sh
 
 STOPSIGNAL SIGQUIT
 
 HEALTHCHECK --interval=10s --timeout=10s --retries=10 CMD kong health
 
-CMD ["kong", "docker-start"]
+CMD ["./entrypoint.sh"]
