@@ -13,12 +13,8 @@ return {
       config = {
         type = "record",
         fields = {
-          -- Describe your plugin's configuration's schema here.        
         },
       },
     },
-  },
-  entity_checks = {
-    -- Describe your plugin's entity validation rules
   },
 }

@@ -19,3 +19,14 @@ jobs:
       env: 
         DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
         DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+    - name: 连接演示服务器，并启动服务
+      uses: cross-the-world/ssh-pipeline@v1.2.0
+      with:
+        host: ${{ secrets.DEMO_HOST }}
+        port: 22
+        user: root
+        key: ${{ secrets.DEMO_KEY }}
+        script: |
+          cd /root/
+          chmod +x demokong.sh
+          ./demokong.sh
